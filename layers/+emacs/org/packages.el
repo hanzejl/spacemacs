@@ -158,7 +158,7 @@ Will work on both org-mode and any mode that accepts plain html."
 
       (dolist (prefix '(
                         ("mb" . "babel")
-                        ("mC" . "clocks")
+                        ("mc" . "clocks/capture")
                         ("md" . "dates")
                         ("me" . "export")
                         ("mf" . "feeds")
@@ -176,11 +176,10 @@ Will work on both org-mode and any mode that accepts plain html."
         (spacemacs/declare-prefix-for-mode 'org-mode (car prefix) (cdr prefix)))
       (spacemacs/set-leader-keys-for-major-mode 'org-mode
         "'" 'org-edit-special
-        "c" 'org-capture
-        "Cc" 'org-clock-cancel
-        "Ci" 'org-clock-in
-        "Co" 'org-clock-out
-        "Cr" 'org-resolve-clocks
+        "cc" 'org-capture
+        "ci" 'org-clock-in
+        "co" 'org-clock-out
+        "cr" 'org-clock-report
         "dd" 'org-deadline
         "ds" 'org-schedule
         "dt" 'org-time-stamp
@@ -396,7 +395,7 @@ Will work on both org-mode and any mode that accepts plain html."
     :init
     (progn
       (setq org-agenda-restore-windows-after-quit t)
-      (dolist (prefix '(("mC" . "clocks")
+      (dolist (prefix '(("mc" . "clocks/capture")
                         ("md" . "dates")
                         ("mi" . "insert")
                         ("ms" . "trees/subtrees")))
@@ -404,9 +403,8 @@ Will work on both org-mode and any mode that accepts plain html."
           (car prefix) (cdr prefix)))
       (spacemacs/set-leader-keys-for-major-mode 'org-agenda-mode
         "a" 'org-agenda
-        "Cc" 'org-agenda-clock-cancel
-        "Ci" 'org-agenda-clock-in
-        "Co" 'org-agenda-clock-out
+        "ci" 'org-agenda-clock-in
+        "co" 'org-agenda-clock-out
         "dd" 'org-agenda-deadline
         "ds" 'org-agenda-schedule
         "ie" 'org-agenda-set-effort
@@ -568,9 +566,9 @@ Headline^^            Visit entry^^               Filter^^                    Da
       (when (spacemacs/system-is-mac)
         (setq org-pomodoro-audio-player "/usr/bin/afplay"))
       (spacemacs/set-leader-keys-for-major-mode 'org-mode
-        "Cp" 'org-pomodoro)
+        "cp" 'org-pomodoro)
       (spacemacs/set-leader-keys-for-major-mode 'org-agenda-mode
-        "Cp" 'org-pomodoro))))
+        "cp" 'org-pomodoro))))
 
 (defun org/init-org-present ()
   (use-package org-present
