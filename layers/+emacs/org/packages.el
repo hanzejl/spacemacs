@@ -17,6 +17,7 @@
         evil-org
         evil-surround
         gnuplot
+        (helm-org-rifle :toggle (configuration-layer/layer-used-p 'helm))
         htmlize
         ;; ob, org and org-agenda are installed by `org-plus-contrib'
         (ob :location built-in)
@@ -71,6 +72,11 @@
     :defer t
     :init (spacemacs/set-leader-keys-for-major-mode 'org-mode
             "tp" 'org-plot/gnuplot)))
+
+(defun org/init-helm-org-rifle ()
+  (use-package helm-org-rifle
+    :defer t
+    :init (spacemacs/set-leader-keys "aor" 'helm-org-rifle)))
 
 (defun org/init-htmlize ()
   (use-package htmlize
@@ -178,8 +184,14 @@ Will work on both org-mode and any mode that accepts plain html."
         "'" 'org-edit-special
         "cc" 'org-capture
         "ci" 'org-clock-in
+        "cd" 'org-clock-display
+        "cI" 'org-clock-in-last
         "co" 'org-clock-out
         "cr" 'org-clock-report
+        "cR" 'org-resolve-clocks
+        "ce" 'org-evaluate-time-range
+        "cg" 'org-clock-goto
+
         "dd" 'org-deadline
         "ds" 'org-schedule
         "dt" 'org-time-stamp
@@ -189,6 +201,8 @@ Will work on both org-mode and any mode that accepts plain html."
         "fu" 'org-feed-update-all
 
         "a" 'org-agenda
+
+        "p" 'org-priority
 
         "Tc" 'org-toggle-checkbox
         "Te" 'org-toggle-pretty-entities
@@ -312,7 +326,7 @@ Will work on both org-mode and any mode that accepts plain html."
       ;; functionalities – and a few others commands – from any other mode.
       (spacemacs/declare-prefix "ao" "org")
       (spacemacs/declare-prefix "aof" "feeds")
-      (spacemacs/declare-prefix "aok" "clock")
+      (spacemacs/declare-prefix "aoC" "clock")
       (spacemacs/set-leader-keys
         ;; org-agenda
         "ao#" 'org-agenda-list-stuck-projects
@@ -322,11 +336,17 @@ Will work on both org-mode and any mode that accepts plain html."
         "aoe" 'org-store-agenda-views
         "aofi" 'org-feed-goto-inbox
         "aofu" 'org-feed-update-all
-        "aokg" 'org-clock-goto
-        "aoki" 'org-clock-in-last
-        "aokj" 'org-clock-jump-to-current-clock
-        "aoko" 'org-clock-out
-        "aokr" 'org-resolve-clocks
+
+        ;; Clock
+        ;; These keybindings should match those under the "mC" prefix (above)
+        "aoCc" 'org-clock-cancel
+        "aoCg" 'org-clock-goto
+        "aoCi" 'org-clock-in
+        "aoCI" 'org-clock-in-last
+        "aoCj" 'org-clock-jump-to-current-clock
+        "aoCo" 'org-clock-out
+        "aoCr" 'org-resolve-clocks
+
         "aol" 'org-store-link
         "aom" 'org-tags-view
         "aoo" 'org-agenda
