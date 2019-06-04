@@ -44,9 +44,9 @@
       (flycheck-add-mode checker 'rjsx-mode)))
   (spacemacs/enable-flycheck 'rjsx-mode))
 
-(defun react/post-init-import-js ()
-  (add-hook 'rjsx-mode-hook #'run-import-js)
-  (spacemacs/import-js-set-key-bindings 'rjsx-mode))
+(defun react/pre-init-import-js ()
+  (when (eq javascript-import-tool 'import-js)
+    (add-to-list 'spacemacs--import-js-modes (cons 'rjsx-mode 'rjsx-mode-hook))))
 
 (defun react/post-init-js-doc ()
   (add-hook 'rjsx-mode-hook 'spacemacs/js-doc-require)
@@ -84,8 +84,8 @@
       (define-key rjsx-mode-map (kbd "C-d") nil))))
 
 (defun react/pre-init-prettier-js ()
-  (if (eq javascript-fmt-tool 'prettier)
-      (add-to-list 'spacemacs--prettier-modes 'rjsx-mode)))
+  (when (eq javascript-fmt-tool 'prettier)
+    (add-to-list 'spacemacs--prettier-modes 'rjsx-mode)))
 
 (defun react/post-init-smartparens ()
   (if dotspacemacs-smartparens-strict-mode
@@ -96,9 +96,9 @@
   (add-to-list 'tern--key-bindings-modes 'rjsx-mode))
 
 (defun react/pre-init-web-beautify ()
-  (if (eq javascript-fmt-tool 'web-beautify)
-      (add-to-list 'spacemacs--web-beautify-modes
-                   (cons 'rjsx-mode 'web-beautify-js))))
+  (when (eq javascript-fmt-tool 'web-beautify)
+    (add-to-list 'spacemacs--web-beautify-modes
+                 (cons 'rjsx-mode 'web-beautify-js))))
 
 (defun react/post-init-yasnippet ()
   (add-hook 'rjsx-mode-hook #'spacemacs//react-setup-yasnippet))

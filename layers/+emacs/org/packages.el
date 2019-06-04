@@ -27,9 +27,11 @@
         (org-expiry :location built-in)
         (org-journal :toggle org-enable-org-journal-support)
         org-download
+        (org-jira :toggle org-enable-jira-support)
         org-mime
         org-pomodoro
         org-present
+        org-cliplink
         (org-projectile :requires projectile)
         (ox-epub :toggle org-enable-epub-support)
         (ox-twbs :toggle org-enable-bootstrap-support)
@@ -114,6 +116,7 @@
             org-default-notes-file (expand-file-name "notes.org" org-directory)
             org-log-done t
             org-startup-with-inline-images t
+            org-latex-prefer-user-labels t
             org-image-actual-width nil
             org-src-fontify-natively t
             org-src-tab-acts-natively t
@@ -235,6 +238,7 @@ Will work on both org-mode and any mode that accepts plain html."
         "sa" 'org-toggle-archive-tag
         "sA" 'org-archive-subtree
         "sb" 'org-tree-to-indirect-buffer
+        "sd" 'org-cut-subtree
         "sh" 'org-promote-subtree
         "sj" 'org-move-subtree-down
         "sk" 'org-move-subtree-up
@@ -313,6 +317,7 @@ Will work on both org-mode and any mode that accepts plain html."
         "if" 'org-footnote-new
         "ih" 'org-insert-heading
         "iH" 'org-insert-heading-after-current
+        "ii" 'org-insert-item
         "iK" 'spacemacs/insert-keybinding-org
         "il" 'org-insert-link
         "in" 'org-add-note
@@ -452,8 +457,8 @@ Headline^^            Visit entry^^               Filter^^                    Da
 [_hk_] kill           [_TAB_] & go to location    [_fr_] refine by tag        [_dS_] un-schedule      [_tl_] log           [_vw_] week        [_cO_] out     [_._]  go to today
 [_hr_] refile         [_RET_] & del other windows [_fc_] by category          [_dd_] set deadline     [_ta_] archive       [_vt_] fortnight   [_cq_] cancel  [_gd_] go to date
 [_hA_] archive        [_o_]   link                [_fh_] by top headline      [_dD_] remove deadline  [_tr_] clock report  [_vm_] month       [_cj_] jump    ^^
-[_h:_] set tags       ^^                          [_fx_] by regexp            [_dt_] timestamp        [_td_] diaries       [_vy_] year        ^^             ^^
-[_hp_] set priority   ^^                          [_fd_] delete all filters   [_+_]  do later         ^^                   [_vn_] next span   ^^             ^^
+[_h:_] set tags       ^^                          [_fx_] by regexp            [_dt_] timestamp        [_ti_] clock issues  [_vy_] year        ^^             ^^
+[_hp_] set priority   ^^                          [_fd_] delete all filters   [_+_]  do later         [_td_] diaries       [_vn_] next span   ^^             ^^
 ^^                    ^^                          ^^                          [_-_]  do earlier       ^^                   [_vp_] prev span   ^^             ^^
 ^^                    ^^                          ^^                          ^^                      ^^                   [_vr_] reset       ^^             ^^
 [_q_] quit
@@ -475,42 +480,43 @@ Headline^^            Visit entry^^               Filter^^                    Da
         ("o"   link-hint-open-link :exit t)
 
         ;; Date
+        ("+" org-agenda-do-date-later)
+        ("-" org-agenda-do-date-earlier)
+        ("dd" org-agenda-deadline)
+        ("dD" (lambda () (interactive)
+                (let ((current-prefix-arg '(4)))
+                  (call-interactively 'org-agenda-deadline))))
         ("ds" org-agenda-schedule)
         ("dS" (lambda () (interactive)
                 (let ((current-prefix-arg '(4)))
                   (call-interactively 'org-agenda-schedule))))
-        ("dd" org-agenda-deadline)
         ("dt" org-agenda-date-prompt)
-        ("dD" (lambda () (interactive)
-                (let ((current-prefix-arg '(4)))
-                  (call-interactively 'org-agenda-deadline))))
-        ("+" org-agenda-do-date-later)
-        ("-" org-agenda-do-date-earlier)
 
         ;; View
         ("vd" org-agenda-day-view)
-        ("vw" org-agenda-week-view)
-        ("vt" org-agenda-fortnight-view)
         ("vm" org-agenda-month-view)
-        ("vy" org-agenda-year-view)
         ("vn" org-agenda-later)
         ("vp" org-agenda-earlier)
         ("vr" org-agenda-reset-view)
+        ("vt" org-agenda-fortnight-view)
+        ("vw" org-agenda-week-view)
+        ("vy" org-agenda-year-view)
 
         ;; Toggle mode
-        ("tf" org-agenda-follow-mode)
-        ("tl" org-agenda-log-mode)
         ("ta" org-agenda-archives-mode)
-        ("tr" org-agenda-clockreport-mode)
         ("td" org-agenda-toggle-diary)
+        ("tf" org-agenda-follow-mode)
+        ("ti" org-agenda-show-clocking-issues)
+        ("tl" org-agenda-log-mode)
+        ("tr" org-agenda-clockreport-mode)
 
         ;; Filter
-        ("ft" org-agenda-filter-by-tag)
-        ("fr" org-agenda-filter-by-tag-refine)
         ("fc" org-agenda-filter-by-category)
-        ("fh" org-agenda-filter-by-top-headline)
-        ("fx" org-agenda-filter-by-regexp)
         ("fd" org-agenda-filter-remove-all)
+        ("fh" org-agenda-filter-by-top-headline)
+        ("fr" org-agenda-filter-by-tag-refine)
+        ("ft" org-agenda-filter-by-tag)
+        ("fx" org-agenda-filter-by-regexp)
 
         ;; Clock
         ("cI" org-agenda-clock-in :exit t)
@@ -548,8 +554,23 @@ Headline^^            Visit entry^^               Filter^^                    Da
     :defer t
     :init
     (progn
+      (spacemacs/declare-prefix "aoB" "org-brain")
       (spacemacs/set-leader-keys
-        "aob" 'org-brain-visualize)
+        "aoBv" 'org-brain-visualize
+        "aoBa" 'org-brain-agenda)
+      (spacemacs/declare-prefix-for-mode 'org-mode "mB" "org-brain")
+      (spacemacs/declare-prefix-for-mode 'org-mode "mBa" "add")
+      (spacemacs/declare-prefix-for-mode 'org-mode "mBg" "goto")
+      (spacemacs/set-leader-keys-for-major-mode 'org-mode
+        "Bac" 'org-brain-add-child
+        "Bv" 'org-brain-visualize
+        "Bap" 'org-brain-add-parent
+        "Baf" 'org-brain-add-friendship
+        "Bgc" 'org-brain-goto-child
+        "Bgp" 'org-brain-goto-parent
+        "Bgf" 'org-brain-goto-friend
+        "BR"  'org-brain-refile
+        "Bx"  'org-brain-delete-entry)
       (evil-set-initial-state 'org-brain-visualize-mode 'emacs))))
 
 (defun org/init-org-expiry ()
@@ -575,6 +596,33 @@ Headline^^            Visit entry^^               Filter^^                    Da
       (spacemacs/set-leader-keys-for-major-mode 'org-mode
         "iDy" 'org-download-yank
         "iDs" 'org-download-screenshot))))
+
+(defun org/init-org-jira ()
+  (use-package org-jira
+    :defer t
+    :init
+    (progn
+      (spacemacs/declare-prefix "aoJ" "jira")
+      (spacemacs/declare-prefix "aoJp" "projects")
+      (spacemacs/declare-prefix "aoJi" "issues")
+      (spacemacs/declare-prefix "aoJs" "subtasks")
+      (spacemacs/declare-prefix "aoJc" "comments")
+      (spacemacs/declare-prefix "aoJt" "todos")
+      (spacemacs/set-leader-keys
+        "aoJpg" 'org-jira-get-projects
+        "aoJib" 'org-jira-browse-issue
+        "aoJig" 'org-jira-get-issues
+        "aoJih" 'org-jira-get-issues-headonly
+        "aoJif" 'org-jira-get-issues-from-filter-headonly
+        "aoJiu" 'org-jira-update-issue
+        "aoJiw" 'org-jira-progress-issue
+        "aoJir" 'org-jira-refresh-issue
+        "aoJic" 'org-jira-create-issue
+        "aoJiy" 'org-jira-copy-current-issue-key
+        "aoJsc" 'org-jira-create-subtask
+        "aoJsg" 'org-jira-get-subtasks
+        "aoJcu" 'org-jira-update-comment
+        "aoJtj" 'org-jira-todo-to-jira))))
 
 (defun org/init-org-mime ()
   (use-package org-mime
@@ -623,6 +671,13 @@ Headline^^            Visit entry^^               Filter^^                    Da
         (evil-normal-state))
       (add-hook 'org-present-mode-hook 'spacemacs//org-present-start)
       (add-hook 'org-present-mode-quit-hook 'spacemacs//org-present-end))))
+
+(defun org/init-org-cliplink ()
+  (use-package org-cliplink
+    :defer t
+    :init
+    (spacemacs/set-leader-keys-for-major-mode 'org-mode
+      "iL" 'org-cliplink)))
 
 (defun org/init-org-projectile ()
   (use-package org-projectile

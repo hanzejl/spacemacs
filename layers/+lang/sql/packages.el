@@ -34,9 +34,9 @@
     :config
     (progn
       (setq
-            ;; should not set this to anything else than nil
-            ;; the focus of SQLi is handled by spacemacs conventions
-            sql-pop-to-buffer-after-send-region nil)
+       ;; should not set this to anything else than nil
+       ;; the focus of SQLi is handled by spacemacs conventions
+       sql-pop-to-buffer-after-send-region nil)
       (advice-add 'sql-add-product :after #'spacemacs/sql-populate-products-list)
       (advice-add 'sql-del-product :after #'spacemacs/sql-populate-products-list)
       (spacemacs/sql-populate-products-list)
@@ -93,6 +93,42 @@
           (sql-send-region start end)
           (evil-insert-state)))
 
+      (defun spacemacs/sql-send-line-and-next-and-focus ()
+        "Send the current line to SQLi and switch to SQLi in `insert state'."
+        (interactive)
+        (let ((sql-pop-to-buffer-after-send-region t))
+          (sql-send-line-and-next)))
+
+      (defun spacemacs/sql-send-string ()
+        "Send a string to SQLi and stays in the same region."
+        (interactive)
+        (let ((sql-pop-to-buffer-after-send-region nil))
+          (call-interactively 'sql-send-string)))
+
+      (defun spacemacs/sql-send-buffer ()
+        "Send the buffer to SQLi and stays in the same region."
+        (interactive)
+        (let ((sql-pop-to-buffer-after-send-region nil))
+          (sql-send-buffer)))
+
+      (defun spacemacs/sql-send-paragraph ()
+        "Send the paragraph to SQLi and stays in the same region."
+        (interactive)
+        (let ((sql-pop-to-buffer-after-send-region nil))
+          (sql-send-paragraph)))
+
+      (defun spacemacs/sql-send-region (start end)
+        "Send region to SQLi and stays in the same region."
+        (interactive "r")
+        (let ((sql-pop-to-buffer-after-send-region nil))
+          (sql-send-region start end)))
+
+      (defun spacemacs/sql-send-line-and-next ()
+        "Send the current line to SQLi and stays in the same region."
+        (interactive)
+        (let ((sql-pop-to-buffer-after-send-region nil))
+          (sql-send-line-and-next)))
+
       (spacemacs/declare-prefix-for-mode 'sql-mode "mb" "buffer")
       (spacemacs/declare-prefix-for-mode 'sql-mode "mh" "dialects")
       (spacemacs/declare-prefix-for-mode 'sql-mode "ms" "interactivity")
@@ -114,11 +150,13 @@
         ;; paragraph gets "f" here because they can be assimilated to functions.
         ;; If you separate your commands in a SQL file, this key will send the
         ;; command around point, which is what you probably want.
-        "sf" 'sql-send-paragraph
+        "sf" 'spacemacs/sql-send-paragraph
         "sF" 'spacemacs/sql-send-paragraph-and-focus
-        "sq" 'sql-send-string
+        "sl" 'spacemacs/sql-send-line-and-next
+        "sL" 'spacemacs/sql-send-line-and-next-and-focus
+        "sq" 'spacemacs/sql-send-string
         "sQ" 'spacemacs/sql-send-string-and-focus
-        "sr" 'sql-send-region
+        "sr" 'spacemacs/sql-send-region
         "sR" 'spacemacs/sql-send-region-and-focus
 
         ;; listing
@@ -157,7 +195,7 @@
       (unless sql-capitalize-keywords-disable-interactive
         (add-hook 'sql-interactive-mode-hook 'sqlup-mode))
       (spacemacs/set-leader-keys-for-major-mode 'sql-mode
-        "=c" 'sqlup-capitalize-keywords-in-region))
+        "c" 'sqlup-capitalize-keywords-in-region))
     :config
     (progn
       (spacemacs|hide-lighter sqlup-mode)
