@@ -53,7 +53,7 @@
   "Absolute path to the lock file.")
 
 (defvar configuration-layer-stable-elpa-version spacemacs-version
-  "Version of ELPA stable repository. This value is aimed to be overwritten by
+  "Version of ELPA stable repository. This value is aimed to be defined in
 the .lock file at the root of the repository.")
 
 (defvar configuration-layer-stable-elpa-name "spacelpa"
@@ -67,6 +67,10 @@ the lock file.")
   (expand-file-name
    (concat spacemacs-cache-directory "stable-elpa/" emacs-version "/"))
   "Remote location of the tarball for the ELPA stable directory")
+
+(defconst configuration-layer-stable-elpa-archive nil
+  "Absolute path to stable ELPA directory. This value is aimed to be defined in
+the .lock file at the root of the repository.")
 
 (defconst configuration-layer--stable-elpa-tarball-directory
   "https://github.com/syl20bnr/spacelpa/archive/"
@@ -586,8 +590,7 @@ refreshed during the current session."
       (configuration-layer//dump-emacs)))
    ((spacemacs-is-dumping-p)
     ;; dumping
-    (configuration-layer//load)
-    (configuration-layer/message "Dumping Emacs..."))
+    (configuration-layer//load))
    ((and (spacemacs/emacs-with-pdumper-set-p)
          (spacemacs-run-from-dump-p))
     ;; dumped
@@ -666,6 +669,12 @@ To prevent package from being installed or uninstalled set the variable
   (configuration-layer//load-layers-files configuration-layer--used-layers
                         '("keybindings.el"))
   (when (spacemacs-is-dumping-p)
+    ;; dump stuff in layers
+    (dolist (layer-name configuration-layer--used-layers)
+      (let ((layer-dump-func (intern (format "%S/pre-dump" layer-name))))
+        (when (fboundp layer-dump-func)
+          (configuration-layer/message "Pre-dumping layer %S..." layer-name)
+          (funcall layer-dump-func))))
     (dotspacemacs|call-func dotspacemacs/user-load
                             "Calling dotfile user-load...")))
 
@@ -2584,8 +2593,7 @@ repository."
 
 (defun configuration-layer//stable-elpa-directory ()
   "Return the local absolute path of the ELPA stable repository."
-  (cdr (assoc configuration-layer-stable-elpa-name
-              configuration-layer-elpa-archives)))
+  configuration-layer-stable-elpa-archive)
 
 (defun configuration-layer//stable-elpa-tarball-local-file ()
   "Return the local absolute path for the file of the downloaded tarball of
@@ -2595,6 +2603,18 @@ ELPA stable repository."
 (defun configuration-layer//stable-elpa-tarball-local-sign-file ()
   "Return the absolute path to the signature file."
   (format "%s.sig" (configuration-layer//stable-elpa-directory)))
+
+(defun configuration-layer//executable-not-found-error (exec &optional msg)
+  "Display a generic error message about not found EXECutable file.
+
+MSG is an additional message append to the generic error."
+  (when (null msg) (setq msg ""))
+  (configuration-layer//error
+   (format
+    (concat
+     "Cannot find %s executable in your PATH.\n"
+     "Verify your spacemacs environment variables with [SPC f e e].%s\n"
+     "Spacelpa installation has been skipped!") exec msg)))
 
 (defun configuration-layer//stable-elpa-untar-archive ()
   "Untar the downloaded archive of stable ELPA, returns non-nil if succeeded."
@@ -2648,10 +2668,7 @@ ELPA stable repository."
          (format "Extracting %s archive..." name) t)
         (if (and (spacemacs/system-is-mswindows)
                  (not (executable-find "tar")))
-            (progn
-              (configuration-layer//error
-                (concat "Error: Cannot find tar executable in you PATH.\n"
-                  "Spacelpa installation has been skipped!")))
+            (configuration-layer//executable-not-found-error "tar")
           (call-process "tar" nil nil nil "-xzf" archive))))
     untar))
 
@@ -2669,35 +2686,24 @@ ELPA stable repository."
       (spacemacs-buffer/set-mode-line
        (format (concat "Downloading stable ELPA repository: %s... "
                        "(please wait)") name) t)
-      (if (and (spacemacs/system-is-mswindows)
-               (not (executable-find "gzip")))
-          ;; additional check on Windows platform as tarball are not handled
-          ;; natively and requires the installation of gzip.
-          (progn
-            (configuration-layer//error
-             (format
-              (concat "Error: Cannot find gzip executable in you PATH.\n"
-                      "Download and install gzip here: "
-                      "http://gnuwin32.sourceforge.net/packages/gzip.htm \n"
-                      "%s installation has been skipped!") name)))
-        ;; download tarball and detached signature
-        (make-directory configuration-layer-stable-elpa-directory t)
-        (url-copy-file url local 'ok-if-already-exists)
+      ;; download tarball and detached signature
+      (make-directory configuration-layer-stable-elpa-directory t)
+      (url-copy-file url local 'ok-if-already-exists)
+      (when dotspacemacs-verify-spacelpa-archives
+        (url-copy-file url-sig local-sig 'ok-if-already-exists))
+      ;; extract
+      (when (configuration-layer//stable-elpa-untar-archive)
+        ;; delete archive
+        (delete-file local)
         (when dotspacemacs-verify-spacelpa-archives
-          (url-copy-file url-sig local-sig 'ok-if-already-exists))
-        ;; extract
-        (when (configuration-layer//stable-elpa-untar-archive)
-          ;; delete archive
-          (delete-file local)
-          (when dotspacemacs-verify-spacelpa-archives
-            (delete-file local-sig))
-          ;; update version file
-          (with-current-buffer (find-file-noselect
-                                configuration-layer--stable-elpa-version-file)
-            (erase-buffer)
-            (beginning-of-buffer)
-            (insert (format "%s" configuration-layer-stable-elpa-version))
-            (save-buffer)))))))
+          (delete-file local-sig))
+        ;; update version file
+        (with-current-buffer (find-file-noselect
+                              configuration-layer--stable-elpa-version-file)
+          (erase-buffer)
+          (beginning-of-buffer)
+          (insert (format "%s" configuration-layer-stable-elpa-version))
+          (save-buffer))))))
 
 ;; (configuration-layer/create-elpa-repository
 ;;  "spacelpa"
