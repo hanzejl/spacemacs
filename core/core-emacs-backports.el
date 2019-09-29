@@ -15,15 +15,17 @@
 
 (when (and (version<  "25" emacs-version)
            (version< emacs-version "26.3"))
-  ;; Hack to prevent TLS error with Emacs 26.1 and 26.2 and gnutls 3.6.4 and above
-  ;; see https://debbugs.gnu.org/cgi/bugreport.cgi?bug=34341
-  (ignore-errors
-    (message "Testing if your Emacs version needs the TLS work-around...")
-    (message "More info at https://debbugs.gnu.org/cgi/bugreport.cgi?bug=34341")
-    (with-current-buffer (url-retrieve-synchronously "https://api.github.com/users/syl20bnr/repos")
-      (when (string-empty-p (buffer-string))
-        (message "Your Emacs and GnutTLS versions need the work-around, applying it...")
-        (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")))))
+  ;; Hack to prevent TLS error with Emacs 26.1 and 26.2 and gnutls 3.6.4 and
+  ;; above see https://debbugs.gnu.org/cgi/bugreport.cgi?bug=34341
+  (message (concat "Testing if your Emacs version %s and GnuTLS version "
+                   "need the TLS work-around...")
+           emacs-version)
+  (message "More info at https://debbugs.gnu.org/cgi/bugreport.cgi?bug=34341")
+  (unless (<= libgnutls-version 30603)
+    (message (concat "Your Emacs version %s and GnutTLS version %s "
+                     "need the work-around, applying it...")
+             emacs-version libgnutls-version)
+    (setq gnutls-algorithm-priority "NORMAL:-VERS-TLS1.3")))
 
 (when (version< emacs-version "26")
   ;; backport fix for macOS battery status
