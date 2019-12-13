@@ -12,7 +12,7 @@
 (setq java-packages
       '(
         company
-        eldoc
+        dap-mode
         flycheck
         ggtags
         gradle-mode
@@ -22,18 +22,27 @@
         maven-test-mode
         (meghanada :toggle (not (version< emacs-version "25.1")))
         mvn
-        (lsp-java :requires lsp-mode lsp-ui company-lsp dap-mode)
+        (lsp-java :requires lsp-mode)
         org
+        smartparens
         ))
 
 (defun java/post-init-company ()
   (add-hook 'java-mode-local-vars-hook #'spacemacs//java-setup-company))
+
+(defun java/pre-init-dap-mode ()
+  (add-to-list 'spacemacs--dap-supported-modes 'java-mode)
+  (add-hook 'java-mode-local-vars-hook #'spacemacs//java-setup-lsp-dap))
 
 (defun java/post-init-flycheck ()
   (add-hook 'java-mode-local-vars-hook #'spacemacs//java-setup-flycheck))
 
 (defun java/post-init-ggtags ()
   (add-hook 'java-mode-local-vars-hook #'spacemacs/ggtags-mode-enable))
+
+(defun java/post-init-smartparens ()
+  (with-eval-after-load 'smartparens
+    (sp-local-pair 'java-mode "/** " " */" :trigger "/**")))
 
 (defun java/init-gradle-mode ()
   (use-package gradle-mode
@@ -158,7 +167,7 @@
 (defun java/init-lsp-java ()
   (use-package lsp-java
     :defer t
-    :if (eq java-backend 'lsp)
+    :if (eq (spacemacs//java-backend) 'lsp)
     :config
     (progn
       ;; key bindings

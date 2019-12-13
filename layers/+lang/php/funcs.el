@@ -9,16 +9,7 @@
 ;;
 ;;; License: GPLv3
 
-
-;; lsp
-
 (defun spacemacs//php-setup-backend ()
   "Conditionally setup php backend."
   (pcase php-backend
-    (`lsp (spacemacs//php-setup-lsp))))
-
-(defun spacemacs//php-setup-lsp ()
-  "Setup lsp backend."
-  (if (configuration-layer/layer-used-p 'lsp)
-      (lsp)
-    (message "`lsp' layer is not installed, please add `lsp' layer to your dotfile.")))
+    (`lsp (lsp))))
